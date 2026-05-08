@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+  neuro_backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-neuro_os_super_secret_concrete_key}
+      - DATABASE_URL=sqlite:///./data/neuro_os.db
+      - OLLAMA_URL=${OLLAMA_URL:-http://host.docker.internal:11434}
+    volumes:
+      - ./data:/app/data
+      - ./backend:/app/backend
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  neuro_data:

@@ -1,0 +1,22 @@
+# Frontend
+node_modules/
+dist/
+build/
+coverage/
+.DS_Store
+*.log
+
+# Backend (Python)
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env*
+!.env.example
+*.db
+.pytest_cache/
+.coverage
+
+# Infrastructure
+.terraform/
+terraform.tfstate*
