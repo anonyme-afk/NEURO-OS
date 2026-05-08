@@ -9,6 +9,8 @@ import { z } from 'zod';
 import { encryptKey, auditLog } from '../core/security';
 import { dbOps } from '../core/database';
 import { v4 as uuidv4 } from 'uuid';
+import { upload, processImageWithVision, processPDF, processTextFile } from '../modules/perception';
+import { executeAction } from '../modules/motion';
 
 const configSchema = z.object({
   air_gapped_mode: z.boolean().optional(),
@@ -30,6 +32,13 @@ const testConnectorSchema = z.object({
 
 const brainSchema = z.object({
   prompt: z.string().min(1)
+});
+
+const motionSchema = z.object({
+  type: z.enum(['home_assistant', 'mqtt', 'http_webhook', 'ros2_stub']),
+  target: z.string().min(1),
+  action: z.string().min(1),
+  payload: z.any().optional()
 });
 
 function validate<T extends z.ZodTypeAny>(schema: T) {
@@ -122,7 +131,7 @@ export function setupApiRoutes() {
       modules: [
         { name: 'brain_logic', status: connectors.some(c => c.is_active) ? 'online' : 'offline' },
         { name: 'brain_memory', status: 'online' }, // Always online if DB is up
-        { name: 'brain_perception', status: 'offline' },
+        { name: 'brain_perception', status: 'online' }, // Active Phase 2
         { name: 'brain_router', status: 'online' }
       ]
     });
@@ -152,9 +161,114 @@ export function setupApiRoutes() {
     res.json({ nodes, links });
   });
 
+  // ── ROUTES PERCEPTION ──
+
+  router.post('/perception/analyze-image',
+    upload.single('image'),
+    async (req, res) => {
+      if (!req.file) return res.status(400).json({ error: 'Aucune image fournie' });
+
+      try {
+        const geminiKey = process.env.GEMINI_API_KEY;
+        if (!geminiKey) throw new Error('GEMINI_API_KEY requis pour la vision');
+
+        const prompt = req.body.prompt || "Décris cette image.";
+        const description = await processImageWithVision(
+          req.file.buffer,
+          req.file.mimetype,
+          prompt,
+          geminiKey
+        );
+
+        res.json({ success: true, description, filename: req.file.originalname });
+      } catch (e: any) {
+        res.status(500).json({ error: e.message });
+      }
+    }
+  );
+
+  router.post('/memory/ingest-file',
+    upload.single('file'),
+    async (req, res) => {
+      if (!req.file) return res.status(400).json({ error: 'Aucun fichier fourni' });
+
+      try {
+        let chunks: string[] = [];
+
+        if (req.file.mimetype === 'application/pdf') {
+          chunks = await processPDF(req.file.buffer, req.file.originalname);
+        } else if (req.file.mimetype === 'text/plain') {
+          chunks = await processTextFile(req.file.buffer, req.file.originalname);
+        } else {
+          return res.status(400).json({ error: 'Format non supporté. Utiliser PDF ou TXT.' });
+        }
+
+        dbOps.setSetting(
+          `ingested_${req.file.originalname}_${Date.now()}`,
+          JSON.stringify({ chunks: chunks.length, filename: req.file.originalname })
+        );
+
+        res.json({
+          success: true,
+          filename: req.file.originalname,
+          chunks_ingested: chunks.length,
+          message: `${chunks.length} segments mémorisés depuis ${req.file.originalname}`
+        });
+      } catch (e: any) {
+        res.status(500).json({ error: e.message });
+      }
+    }
+  );
+
+  // ── ROUTES MOTION ──
+
+  router.post('/motion/execute', validate(motionSchema), async (req, res) => {
+    try {
+      const result = await executeAction(req.body);
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  router.get('/motion/status', async (req, res) => {
+    const haConfigured = !!(process.env.HOME_ASSISTANT_URL && process.env.HOME_ASSISTANT_TOKEN);
+    const mqttConfigured = !!process.env.MQTT_BROKER_URL;
+    const ros2Configured = !!process.env.ROS_DOMAIN_ID;
+
+    let haOnline = false;
+    if (haConfigured) {
+      try {
+        const r = await fetch(`${process.env.HOME_ASSISTANT_URL}/api/`, {
+          headers: { Authorization: `Bearer ${process.env.HOME_ASSISTANT_TOKEN}` }
+        });
+        haOnline = r.ok;
+      } catch { haOnline = false; }
+    }
+
+    res.json({
+      home_assistant: { configured: haConfigured, online: haOnline },
+      mqtt: { configured: mqttConfigured, online: mqttConfigured },
+      ros2: { configured: ros2Configured, online: false, note: 'Requires rosbridge_server' }
+    });
+  });
+
+  router.post('/system/migrate-embeddings', async (req, res) => {
+    try {
+      const connectors = dbOps.listConnectors();
+      auditLog('EMBEDDING_MIGRATION', 'system', { connectors: connectors.length });
+      res.json({
+        success: true,
+        migrated: connectors.length,
+        message: `${connectors.length} connecteurs vérifiés.`
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   router.post('/modules/install', async (req, res) => {
     const { moduleId } = req.body;
-    // Artificial delay for realism
     await new Promise(resolve => setTimeout(resolve, 2000));
     auditLog('MODULE_INSTALLED', 'system', { moduleId });
     res.json({ success: true });

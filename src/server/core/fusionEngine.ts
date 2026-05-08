@@ -1,15 +1,7 @@
 import stringSimilarity from 'string-similarity';
-import Piscina from 'piscina';
 import { connectorRegistry } from '../connectors/registry';
 import { eventBus } from './eventBus';
 import { BaseConnector } from '../connectors/base';
-import { fileURLToPath } from 'url';
-
-// Thread pool to prevent blocking the main JS event loop on O(n^2) model combinations
-const workerPath = new URL('./similarityWorker.ts', import.meta.url);
-const piscina = new Piscina({
-  filename: fileURLToPath(workerPath)
-});
 
 class FusionEngine {
   
@@ -63,8 +55,10 @@ class FusionEngine {
       let simScorePromises: Promise<number>[] = [];
       for (let j = 0; j < valid.length; j++) {
         if (i !== j) {
-          // Offload to worker threads to avoid O(n^2) event loop blocking
-          simScorePromises.push(piscina.run({ text1: valid[i].text, text2: valid[j].text }));
+          // Direct calculation instead of worker thread for small model sets
+          simScorePromises.push(
+            Promise.resolve(stringSimilarity.compareTwoStrings(valid[i].text || "", valid[j].text || ""))
+          );
         }
       }
       

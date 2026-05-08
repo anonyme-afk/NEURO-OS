@@ -14,13 +14,18 @@ const logger = pino({
 });
 
 // 32 bytes hex string for AES-256
-if (!process.env.ENCRYPTION_KEY && process.env.NODE_ENV === 'production') {
-  throw new Error("CRITICAL FLIGHT ERROR: Set the ENCRYPTION_KEY");
+const ENCRYPTION_KEY_RAW = process.env.ENCRYPTION_KEY;
+if (!ENCRYPTION_KEY_RAW) {
+  throw new Error(
+    "FATAL: ENCRYPTION_KEY manquante.\n" +
+    "Générer: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"\n" +
+    "Puis l'ajouter dans .env"
+  );
 }
-if (!process.env.ENCRYPTION_KEY) {
-  logger.warn("WARNING: Using ephemeral encryption key. Data will be lost on restart.");
+if (ENCRYPTION_KEY_RAW.includes('REMPLACER')) {
+  throw new Error("FATAL: Remplacer le placeholder ENCRYPTION_KEY dans .env");
 }
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+const ENCRYPTION_KEY = ENCRYPTION_KEY_RAW;
 const IV_LENGTH = 16; 
 
 export function encryptKey(text: string): string {

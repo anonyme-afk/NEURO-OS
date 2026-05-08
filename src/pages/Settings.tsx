@@ -4,10 +4,14 @@ import { apiFetch } from '../lib/api';
 import { PageHeader } from '../components/ui/PageHeader';
 import { GlassPanel } from '../components/ui/GlassPanel';
 import { ToggleSwitch } from '../components/ui/ToggleSwitch';
+import { useNavigate } from 'react-router-dom';
 
 export function Settings() {
   const [config, setConfig] = useState<any>(null);
   const [connectors, setConnectors] = useState<any[]>([]);
+  const [migrating, setMigrating] = useState(false);
+  const [migrateMsg, setMigrateMsg] = useState('');
+  const navigate = useNavigate();
 
   const fetchData = async () => {
     try {
@@ -33,6 +37,19 @@ export function Settings() {
       fetchData(); // reload
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleMigration = async () => {
+    setMigrating(true);
+    setMigrateMsg('');
+    try {
+      const r = await apiFetch<any>('/system/migrate-embeddings', { method: 'POST' });
+      setMigrateMsg(r.message);
+    } catch (e: any) {
+      setMigrateMsg(`Erreur: ${e.message}`);
+    } finally {
+      setMigrating(false);
     }
   };
 
@@ -111,16 +128,24 @@ export function Settings() {
             ))}
           </div>
 
-          <button className="mt-auto px-4 py-2 border border-[#00FFFF]/30 text-[#00FFFF] hover:bg-[#00FFFF]/10 rounded font-mono text-sm uppercase self-start">
+          <button
+            onClick={() => navigate('/workspaces')}
+            className="mt-auto px-4 py-2 border border-[#00FFFF]/30 text-[#00FFFF] hover:bg-[#00FFFF]/10 rounded font-mono text-sm uppercase self-start transition-colors"
+          >
             + Add to Vault
           </button>
           
           <div className="mt-6 pt-6 border-t border-white/10">
              <h3 className="font-bold text-sm mb-2 text-white">Migration Vectorielle</h3>
              <p className="text-xs text-[#6B7A99] mb-4">Mettre à jour l'espace latent vers la nouvelle version du modèle d'embedding (all-MiniLM {`->`} text-embedding-3).</p>
-             <button className="px-4 py-2 bg-white/5 border border-white/20 text-[#6B7A99] rounded font-mono text-sm hover:text-white hover:border-white transition-colors">
-               LANCER LA MIGRATION DB
+             <button
+                onClick={handleMigration}
+                disabled={migrating}
+                className="px-4 py-2 bg-white/5 border border-white/20 text-[#6B7A99] rounded font-mono text-sm hover:text-white hover:border-white transition-colors disabled:opacity-50"
+             >
+               {migrating ? 'EN COURS...' : 'LANCER LA MIGRATION DB'}
              </button>
+             {migrateMsg && <p className="text-xs mt-2 font-mono text-[#00FF88]">{migrateMsg}</p>}
           </div>
         </GlassPanel>
       </div>

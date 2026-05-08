@@ -1,6 +1,7 @@
 import { MetricsDashboard } from '../components/MetricsDashboard';
 import { TerminalInterface } from '../components/TerminalInterface';
 import { Brain3D } from '../components/Brain3D';
+import { PerceptionPanel } from '../components/PerceptionPanel';
 import { PageHeader } from '../components/ui/PageHeader';
 import { GlassPanel } from '../components/ui/GlassPanel';
 import { Cpu } from 'lucide-react';
@@ -20,6 +21,8 @@ export function Dashboard() {
       </header>
       
       <MetricsDashboard />
+
+      <PerceptionPanel />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[600px]">
         {/* 3D Visualizer */}
