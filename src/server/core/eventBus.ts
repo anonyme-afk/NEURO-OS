@@ -1,16 +1,32 @@
 import { EventEmitter } from 'events';
+import { createClient } from 'redis';
 
 export class EventBus extends EventEmitter {
+  private redisClient: any;
+  private redisEnabled = false;
+
   constructor() {
     super();
-    // Increase listener limits if many clients connect
     this.setMaxListeners(100);
+    this.initRedis();
   }
 
-  /**
-   * Publishes a completely REAL event into the system.
-   * This is sent to the local process and broadcast to all connected WebSockets.
-   */
+  private async initRedis() {
+    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    try {
+      this.redisClient = createClient({ url: redisUrl });
+      this.redisClient.on('error', (err: any) => {
+        console.warn('[EventBus] Redis disconnected, using local bus only.');
+        this.redisEnabled = false;
+      });
+      await this.redisClient.connect();
+      this.redisEnabled = true;
+      console.log('[EventBus] Redis connected successfully.');
+    } catch (e) {
+      this.redisEnabled = false;
+    }
+  }
+
   publish(eventType: string, data: any) {
     const payload = {
       type: eventType,
@@ -18,8 +34,13 @@ export class EventBus extends EventEmitter {
       data: data
     };
     
-    // Emit internally
+    // Internal Emit (for local WS and listeners)
     this.emit('brain_event', payload);
+
+    // Distributed Emit (for other instances)
+    if (this.redisEnabled) {
+      this.redisClient.publish('neuro_os_events', JSON.stringify(payload));
+    }
   }
 }
 

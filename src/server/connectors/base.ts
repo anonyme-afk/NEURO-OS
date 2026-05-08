@@ -11,4 +11,7 @@ export interface BaseConnector {
   
   ping(): Promise<boolean>;
   generate(prompt: string): Promise<string>;
+  
+  // Dynamic Configuration
+  reconfigure?(config: any): void;
 }

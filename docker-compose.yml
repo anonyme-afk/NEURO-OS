@@ -1,19 +1,23 @@
 version: '3.9'
 
 services:
-  neuro_backend:
+  neuro_os:
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
     ports:
-      - "8000:8000"
+      - "3000:3000"
     environment:
-      - SECRET_KEY=${SECRET_KEY:-neuro_os_super_secret_concrete_key}
-      - DATABASE_URL=sqlite:///./data/neuro_os.db
+      - NODE_ENV=production
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      - REDIS_URL=redis://redis:6379
       - OLLAMA_URL=${OLLAMA_URL:-http://host.docker.internal:11434}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     volumes:
       - ./data:/app/data
-      - ./backend:/app/backend
+    depends_on:
+      redis:
+        condition: service_healthy
 
   redis:
     image: redis:7-alpine

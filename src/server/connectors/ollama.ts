@@ -10,9 +10,14 @@ export class OllamaConnector implements BaseConnector {
   circuit_breaker_open_until = 0;
   private url: string;
 
-  constructor() {
-    this.url = (process.env.OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, "");
-    this.model_name = 'llama3'; // Default, we will attempt to ping whatever is loaded
+  constructor(url?: string, model?: string) {
+    this.url = (url || process.env.OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, "");
+    this.model_name = model || 'llama3';
+  }
+
+  reconfigure(config: any) {
+    if (config.url) this.url = config.url.replace(/\/$/, "");
+    if (config.model) this.model_name = config.model;
   }
 
   async ping(): Promise<boolean> {
@@ -26,13 +31,9 @@ export class OllamaConnector implements BaseConnector {
       if (!res.ok) return false;
       
       const data = await res.json();
-      if (data.models && data.models.length > 0) {
-        this.model_name = data.models[0].name; // Use first available model dynamically
-        return true;
-      }
-      return false;
+      return !!(data.models && data.models.length > 0);
     } catch (e) {
-      return false; // Ollama is likely not running locally
+      return false;
     }
   }
 

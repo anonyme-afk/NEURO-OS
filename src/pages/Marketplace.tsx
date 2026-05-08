@@ -1,14 +1,31 @@
-import { Download, Cloud, Cpu, Eye, Zap } from 'lucide-react';
+import { Download, Cloud, Cpu, Eye, Zap, Loader2, CheckCircle2 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { GlassPanel } from '../components/ui/GlassPanel';
+import { useState } from 'react';
+import { apiFetch } from '../lib/api';
 
 export function Marketplace() {
+  const [installing, setInstalling] = useState<number | null>(null);
+  const [installed, setInstalled] = useState<number[]>([]);
+
   const modules = [
     { id: 1, name: 'Vision Perception Beta', desc: 'Adds OpenCV & Whisper integration to the brain to analyze images uploaded in prompts.', icon: <Eye />, type: 'Core', status: 'Available' },
     { id: 2, name: 'Robotic Arm Motion', desc: 'Hooks into ROS2 topics to translate brain logic outputs into standard XYZ servo coordinates.', icon: <Cpu />, type: 'Hardware', status: 'Coming Soon' },
     { id: 3, name: 'Crypto Sentinel', desc: 'Real-time WebSocket feed into Binance for autonomous trading logic ingestion.', icon: <Zap />, type: 'Data', status: 'Incompatible (Air-Gapped)' },
     { id: 4, name: 'Distributed Mesh Node', desc: 'LibP2P module allowing your brain to share compute with other trusted NEURO-OS instances globally.', icon: <Cloud />, type: 'Network', status: 'Available' }
   ];
+
+  const handleInstall = async (id: number) => {
+    setInstalling(id);
+    try {
+      await apiFetch('/modules/install', { method: 'POST', body: { moduleId: id } });
+      setInstalled(prev => [...prev, id]);
+    } catch (e) {
+      alert("Installation failed: " + e);
+    } finally {
+      setInstalling(null);
+    }
+  };
 
   return (
     <div className="p-6 max-w-5xl mx-auto flex flex-col gap-8 flex-1">
@@ -38,14 +55,17 @@ export function Marketplace() {
 
             <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
               <span className={`text-xs font-mono ${m.status === 'Available' ? 'text-[#00FF88]' : 'text-[#FFB800]'}`}>
-                {m.status}
+                {installed.includes(m.id) ? 'Installed' : m.status}
               </span>
               
               <button 
-                disabled={m.status !== 'Available'}
-                className="px-4 py-2 bg-white/5 hover:bg-[#6E00FF]/20 border border-white/10 hover:border-[#6E00FF]/50 rounded text-sm font-mono transition-colors disabled:opacity-30 disabled:hover:bg-white/5"
+                onClick={() => handleInstall(m.id)}
+                disabled={m.status !== 'Available' || installing === m.id || installed.includes(m.id)}
+                className="px-4 py-2 bg-white/5 hover:bg-[#6E00FF]/20 border border-white/10 hover:border-[#6E00FF]/50 rounded text-sm font-mono transition-colors disabled:opacity-30 flex items-center gap-2"
               >
-                {m.status === 'Available' ? 'Install Node' : 'Locked'}
+                {installing === m.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 
+                 installed.includes(m.id) ? <CheckCircle2 className="w-4 h-4 text-[#00FF88]" /> : 
+                 m.status === 'Available' ? 'Install Node' : 'Locked'}
               </button>
             </div>
             

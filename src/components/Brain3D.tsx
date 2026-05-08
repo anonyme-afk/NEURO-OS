@@ -1,20 +1,26 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { apiFetch } from '../lib/api';
 
 export function Brain3D() {
   const mountRef = useRef<HTMLDivElement>(null);
   const nodesRef = useRef<{ [key: string]: THREE.Mesh }>({});
+  const [modules, setModules] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!mountRef.current) return;
+    // Initial fetch of real modules
+    apiFetch<{ modules: any[] }>('/modules/status').then(data => {
+        setModules(data.modules);
+    }).catch(console.error);
+  }, []);
 
-    // Detect theme from HTML class
+  useEffect(() => {
+    if (!mountRef.current || modules.length === 0) return;
+
     const isDark = document.documentElement.classList.contains('dark');
     const bgColor = isDark ? 0x020408 : 0xf8fafc;
     const accentColor = isDark ? 0x00FFFF : 0x0ea5e9;
-    const nodeColor = isDark ? 0x333333 : 0xcccccc;
 
-    // --- SCENE SETUP ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(bgColor);
     scene.fog = new THREE.FogExp2(bgColor, 0.05);
@@ -26,21 +32,21 @@ export function Brain3D() {
     renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
     mountRef.current.appendChild(renderer.domElement);
 
-    // --- LIGHTS ---
     const ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 0.2 : 0.8);
     scene.add(ambientLight);
     const pointLight = new THREE.PointLight(accentColor, 1, 100);
     pointLight.position.set(0, 0, 10);
     scene.add(pointLight);
 
-    // --- REAL MODULE NODES ---
-    const modules = ['brain_router', 'brain_memory', 'brain_logic', 'brain_perception'];
     const geometry = new THREE.SphereGeometry(0.8, 32, 32);
     
-    modules.forEach((modName, index) => {
+    modules.forEach((mod, index) => {
+      const isOnline = mod.status === 'online';
+      const nodeColor = isOnline ? (isDark ? 0x333333 : 0xcccccc) : 0xff3838;
+      
       const material = new THREE.MeshStandardMaterial({ 
         color: nodeColor,
-        emissive: isDark ? 0x111111 : 0xeeeeee,
+        emissive: isOnline ? (isDark ? 0x111111 : 0xeeeeee) : 0x440000,
         emissiveIntensity: 0.5,
         wireframe: true 
       });
@@ -50,28 +56,25 @@ export function Brain3D() {
       const radius = 6;
       mesh.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius, 0);
       
-      nodesRef.current[modName] = mesh;
+      nodesRef.current[mod.name] = mesh;
       scene.add(mesh);
     });
 
-    // --- CONNECTING LINES ---
     const lineMaterial = new THREE.LineBasicMaterial({ 
       color: isDark ? 0x6e00ff : 0x6366f1, 
       transparent: true, 
       opacity: 0.3 
     });
-    const points = modules.map(m => nodesRef.current[m].position);
+    const points = modules.map(m => nodesRef.current[m.name].position);
     if(points.length > 0) points.push(points[0]);
     
     const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
     const line = new THREE.Line(lineGeometry, lineMaterial);
     scene.add(line);
 
-    // --- ANIMATION ---
     let animationId: number;
     const animate = () => {
       animationId = requestAnimationFrame(animate);
-      
       scene.rotation.y += 0.002;
       scene.rotation.x += 0.001;
 
@@ -86,7 +89,6 @@ export function Brain3D() {
     };
     animate();
 
-    // --- WS EVENT BINDING ---
     const handleWSEvent = (e: Event) => {
       const customEvent = e as CustomEvent;
       const { type } = customEvent.detail;
@@ -122,9 +124,11 @@ export function Brain3D() {
       window.removeEventListener('neuro_ws_event', handleWSEvent);
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationId);
-      mountRef.current?.removeChild(renderer.domElement);
+      if (mountRef.current && renderer.domElement.parentElement === mountRef.current) {
+        mountRef.current.removeChild(renderer.domElement);
+      }
     };
-  }, []);
+  }, [modules]);
 
   return <div ref={mountRef} className="w-full h-full min-h-[400px] transition-colors duration-500" />;
 }

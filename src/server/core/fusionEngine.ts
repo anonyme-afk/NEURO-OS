@@ -6,8 +6,9 @@ import { BaseConnector } from '../connectors/base';
 import { fileURLToPath } from 'url';
 
 // Thread pool to prevent blocking the main JS event loop on O(n^2) model combinations
+const workerPath = new URL('./similarityWorker.ts', import.meta.url);
 const piscina = new Piscina({
-  filename: fileURLToPath(new URL('./similarityWorker.ts', import.meta.url))
+  filename: fileURLToPath(workerPath)
 });
 
 class FusionEngine {
