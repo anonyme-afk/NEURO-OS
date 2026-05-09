@@ -2,75 +2,400 @@
 
 @layer base {
   :root {
-    /* Theme: Dark (Default) */
+    /* ── Couleurs Dark (défaut) ── */
     --color-bg: #020408;
     --color-surface: #0a0f1a;
-    --color-surface-2: #141b2d;
-    --color-border: rgba(255, 255, 255, 0.1);
+    --color-surface-2: #111827;
+    --color-surface-3: #1a2235;
+    --color-border: rgba(255, 255, 255, 0.08);
+    --color-border-hover: rgba(0, 255, 255, 0.3);
     --color-text: #f1f5f9;
-    --color-text-muted: #94a3b8;
-    
+    --color-text-muted: #64748b;
+    --color-text-dim: #334155;
+
     --color-primary: #00ffff;
-    --color-primary-glow: rgba(0, 255, 255, 0.15);
+    --color-primary-dim: rgba(0, 255, 255, 0.08);
     --color-secondary: #8b5cf6;
-    
+    --color-accent: #ff006e;
+
     --color-success: #10b981;
     --color-warning: #f59e0b;
     --color-error: #ef4444;
-    
+    --color-info: #3b82f6;
+
+    --glow-primary: 0 0 20px rgba(0, 255, 255, 0.15), 0 0 40px rgba(0, 255, 255, 0.05);
+    --glow-secondary: 0 0 20px rgba(139, 92, 246, 0.15);
+    --glow-success: 0 0 10px rgba(16, 185, 129, 0.3);
+
     --glass-bg: rgba(255, 255, 255, 0.03);
-    --glass-blur: blur(12px);
-    
+    --glass-border: rgba(255, 255, 255, 0.07);
+    --glass-blur: blur(16px);
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+
     --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+    --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .light {
-    /* Theme: Light (OpenClaw) */
     --color-bg: #f8fafc;
     --color-surface: #ffffff;
     --color-surface-2: #f1f5f9;
+    --color-surface-3: #e2e8f0;
     --color-border: #e2e8f0;
+    --color-border-hover: #0ea5e9;
     --color-text: #0f172a;
     --color-text-muted: #64748b;
-    
+    --color-text-dim: #94a3b8;
+
     --color-primary: #0ea5e9;
-    --color-primary-glow: rgba(14, 165, 233, 0.1);
+    --color-primary-dim: rgba(14, 165, 233, 0.08);
     --color-secondary: #6366f1;
-    
-    --glass-bg: rgba(255, 255, 255, 0.7);
-    --glass-blur: blur(10px);
+
+    --glow-primary: 0 0 20px rgba(14, 165, 233, 0.15);
+    --glass-bg: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(0, 0, 0, 0.06);
+  }
+
+  * {
+    box-sizing: border-box;
   }
 
   body {
     background-color: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
     transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 99px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary);
+  }
+
+  ::selection {
+    background: var(--color-primary);
+    color: var(--color-bg);
   }
 }
 
 @layer components {
-  .openclaw-card {
-    @apply bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-sm transition-all duration-300;
+
+  /* ── Carte principale ── */
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    transition: border-color var(--transition), box-shadow var(--transition);
   }
-  
-  .openclaw-card:hover {
-    @apply border-[var(--color-primary)] shadow-[0_0_15px_rgba(0,255,255,0.05)];
+
+  .card:hover {
+    border-color: var(--color-border-hover);
+    box-shadow: var(--glow-primary);
+  }
+
+  /* ── Badge de statut ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 99px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .badge-success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--color-success);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+  }
+
+  .badge-error {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--color-error);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+
+  .badge-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--color-warning);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+  }
+
+  .badge-info {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--color-info);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+  }
+
+  .badge-primary {
+    background: var(--color-primary-dim);
+    color: var(--color-primary);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+  }
+
+  /* ── Boutons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 
   .btn-primary {
-    @apply px-4 py-2 bg-[var(--color-primary)] text-[var(--color-bg)] font-medium rounded-lg hover:opacity-90 transition-all;
+    background: var(--color-primary);
+    color: var(--color-bg);
+    border-color: var(--color-primary);
   }
-}
 
-@layer utilities {
-  .glass-panel {
-    background: var(--glass-bg);
-    border: 1px solid var(--color-border);
-    backdrop-filter: var(--glass-blur);
+  .btn-primary:hover:not(:disabled) {
+    box-shadow: var(--glow-primary);
+    transform: translateY(-1px);
   }
-  
+
+  .btn-secondary {
+    background: var(--color-primary-dim);
+    color: var(--color-primary);
+    border-color: rgba(0, 255, 255, 0.2);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: rgba(0, 255, 255, 0.12);
+    border-color: var(--color-primary);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-text-muted);
+    border-color: var(--color-border);
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    color: var(--color-text);
+    border-color: var(--color-border-hover);
+    background: var(--color-surface-2);
+  }
+
+  .btn-danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--color-error);
+    border-color: rgba(239, 68, 68, 0.2);
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.2);
+  }
+
+  /* ── Input ── */
+  .input {
+    width: 100%;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--color-text);
+    transition: border-color var(--transition), box-shadow var(--transition);
+    outline: none;
+    font-family: var(--font-sans);
+  }
+
+  .input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.08);
+  }
+
+  .input::placeholder {
+    color: var(--color-text-dim);
+  }
+
+  /* ── Glass panel ── */
+  .glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: var(--glass-blur);
+    border-radius: var(--radius-lg);
+  }
+
+  /* ── Stat card ── */
+  .stat-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+  }
+
+  .stat-card:hover {
+    border-color: var(--color-border-hover);
+    box-shadow: var(--glow-primary);
+  }
+
+  /* ── Label ── */
+  .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+  }
+
+  /* ── Separator ── */
+  .separator {
+    height: 1px;
+    background: var(--color-border);
+    margin: 0;
+  }
+
+  /* ── Nav item ── */
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all var(--transition);
+    text-decoration: none;
+  }
+
+  .nav-item:hover {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+  }
+
+  .nav-item.active {
+    background: var(--color-primary-dim);
+    color: var(--color-primary);
+    border: 1px solid rgba(0, 255, 255, 0.1);
+  }
+
+  /* ── Code block ── */
+  .code-block {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-text);
+    overflow-x: auto;
+  }
+
+  /* ── Glow text ── */
   .glow-text {
-    text-shadow: 0 0 10px var(--color-primary-glow);
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+  }
+
+  /* ── Gradient text ── */
+  .gradient-text {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Animations ── */
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-success);
+    box-shadow: var(--glow-success);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    50% {
+      opacity: 0.7;
+      transform: scale(0.9);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease forwards;
+  }
+
+  .animate-slide-in {
+    animation: slideIn 0.3s ease forwards;
+  }
+
+  /* ── Scrollbar dans les terminaux ── */
+  .terminal-scroll::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  .terminal-scroll::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 255, 0.2);
   }
 }

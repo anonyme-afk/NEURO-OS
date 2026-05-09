@@ -1,4 +1,5 @@
 // src/server/modules/motion.ts
+// @ts-ignore
 import mqtt from 'mqtt';
 import { eventBus } from '../core/eventBus';
 import { auditLog } from '../core/security';

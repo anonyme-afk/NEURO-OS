@@ -166,7 +166,8 @@ export function setupApiRoutes() {
   router.post('/perception/analyze-image',
     upload.single('image'),
     async (req, res) => {
-      if (!req.file) return res.status(400).json({ error: 'Aucune image fournie' });
+      const file = (req as any).file;
+      if (!file) return res.status(400).json({ error: 'Aucune image fournie' });
 
       try {
         const geminiKey = process.env.GEMINI_API_KEY;
@@ -174,13 +175,13 @@ export function setupApiRoutes() {
 
         const prompt = req.body.prompt || "Décris cette image.";
         const description = await processImageWithVision(
-          req.file.buffer,
-          req.file.mimetype,
+          file.buffer,
+          file.mimetype,
           prompt,
           geminiKey
         );
 
-        res.json({ success: true, description, filename: req.file.originalname });
+        res.json({ success: true, description, filename: file.originalname });
       } catch (e: any) {
         res.status(500).json({ error: e.message });
       }
@@ -190,29 +191,30 @@ export function setupApiRoutes() {
   router.post('/memory/ingest-file',
     upload.single('file'),
     async (req, res) => {
-      if (!req.file) return res.status(400).json({ error: 'Aucun fichier fourni' });
+      const file = (req as any).file;
+      if (!file) return res.status(400).json({ error: 'Aucun fichier fourni' });
 
       try {
         let chunks: string[] = [];
 
-        if (req.file.mimetype === 'application/pdf') {
-          chunks = await processPDF(req.file.buffer, req.file.originalname);
-        } else if (req.file.mimetype === 'text/plain') {
-          chunks = await processTextFile(req.file.buffer, req.file.originalname);
+        if (file.mimetype === 'application/pdf') {
+          chunks = await processPDF(file.buffer, file.originalname);
+        } else if (file.mimetype === 'text/plain') {
+          chunks = await processTextFile(file.buffer, file.originalname);
         } else {
           return res.status(400).json({ error: 'Format non supporté. Utiliser PDF ou TXT.' });
         }
 
         dbOps.setSetting(
-          `ingested_${req.file.originalname}_${Date.now()}`,
-          JSON.stringify({ chunks: chunks.length, filename: req.file.originalname })
+          `ingested_${file.originalname}_${Date.now()}`,
+          JSON.stringify({ chunks: chunks.length, filename: file.originalname })
         );
 
         res.json({
           success: true,
-          filename: req.file.originalname,
+          filename: file.originalname,
           chunks_ingested: chunks.length,
-          message: `${chunks.length} segments mémorisés depuis ${req.file.originalname}`
+          message: `${chunks.length} segments mémorisés depuis ${file.originalname}`
         });
       } catch (e: any) {
         res.status(500).json({ error: e.message });

@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+// @ts-ignore
 import { createClient } from 'redis';
 
 export class EventBus extends EventEmitter {
@@ -38,8 +39,12 @@ export class EventBus extends EventEmitter {
     this.emit('brain_event', payload);
 
     // Distributed Emit (for other instances)
-    if (this.redisEnabled) {
-      this.redisClient.publish('neuro_os_events', JSON.stringify(payload));
+    if (this.redisEnabled && this.redisClient) {
+      try {
+        this.redisClient.publish('neuro_os_events', JSON.stringify(payload));
+      } catch (e) {
+        console.warn('[EventBus] Failed to publish to Redis:', e);
+      }
     }
   }
 }

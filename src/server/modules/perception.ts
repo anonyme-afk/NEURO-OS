@@ -1,5 +1,7 @@
 // src/server/modules/perception.ts
+// @ts-ignore
 import multer from 'multer';
+// @ts-ignore
 import pdfParse from 'pdf-parse';
 import fs from 'fs';
 import path from 'path';

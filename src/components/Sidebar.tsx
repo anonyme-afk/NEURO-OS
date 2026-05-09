@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Settings, PackageOpen, Download, Beaker, Sun, Moon } from 'lucide-react';
+import { Activity, Settings, PackageOpen, Download, Beaker, Sun, Moon, Brain, Zap } from 'lucide-react';
 
 interface SidebarProps {
   theme: string;
@@ -10,62 +10,77 @@ export function Sidebar({ theme, onToggleTheme }: SidebarProps) {
   const location = useLocation();
 
   const links = [
-    { name: 'Core Dashboard', path: '/dashboard', icon: <Activity className="w-5 h-5" /> },
-    { name: 'Marketplace', path: '/marketplace', icon: <Download className="w-5 h-5" /> },
-    { name: 'Workspaces', path: '/workspaces', icon: <PackageOpen className="w-5 h-5" /> },
-    { name: 'Vault & Settings', path: '/settings', icon: <Settings className="w-5 h-5" /> },
-    { name: 'Chaos Lab', path: '/lab', icon: <Beaker className="w-5 h-5" /> }
+    { name: 'Dashboard', path: '/dashboard', icon: Activity, desc: 'Vue temps réel' },
+    { name: 'Marketplace', path: '/marketplace', icon: Download, desc: 'Modules' },
+    { name: 'Workspaces', path: '/workspaces', icon: PackageOpen, desc: 'API Keys' },
+    { name: 'Vault & Sécurité', path: '/settings', icon: Settings, desc: 'Config' },
+    { name: 'Chaos Lab', path: '/lab', icon: Beaker, desc: 'Tests' },
   ];
 
   return (
-    <div className="w-64 bg-[var(--color-surface)] min-h-screen border-r border-[var(--color-border)] p-4 flex flex-col gap-6 transition-colors duration-300">
-      <div className="flex items-center gap-3 px-2 py-4">
-        <div className="w-8 h-8 rounded bg-[var(--color-primary)]/10 flex items-center justify-center border border-[var(--color-primary)]/30">
-          <Activity className="text-[var(--color-primary)] w-5 h-5" />
+    <aside className="w-60 shrink-0 bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col min-h-screen transition-colors duration-300">
+
+      {/* Logo */}
+      <div className="px-5 py-6 border-b border-[var(--color-border)]">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-[var(--color-primary-dim)] border border-[rgba(0,255,255,0.2)] flex items-center justify-center">
+            <Brain className="w-5 h-5 text-[var(--color-primary)]" />
+          </div>
+          <div>
+            <div className="text-[15px] font-bold tracking-wide gradient-text">NEURO-OS</div>
+            <div className="text-[10px] text-[var(--color-text-muted)] font-mono uppercase tracking-wider">v2.0 · GPL-3</div>
+          </div>
         </div>
-        <span className="text-xl font-bold tracking-wider glow-text">NEURO-OS</span>
       </div>
 
-      <nav className="flex flex-col gap-1">
-        {links.map(l => {
-          const isActive = location.pathname.startsWith(l.path);
+      {/* Nav */}
+      <nav className="flex-1 p-3 flex flex-col gap-1">
+        <div className="label px-2 mb-2 mt-1">Navigation</div>
+        {links.map(({ name, path, icon: Icon, desc }) => {
+          const active = location.pathname.startsWith(path);
           return (
-            <Link 
-              key={l.path} 
-              to={l.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm font-medium ${
-                isActive 
-                ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/10' 
-                : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]'
-              }`}
-            >
-              {l.icon}
-              {l.name}
+            <Link key={path} to={path} className={`nav-item ${active ? 'active' : ''}`}>
+              <Icon className="w-4 h-4 shrink-0" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[13px] font-medium leading-tight">{name}</span>
+                <span className="text-[10px] opacity-50 leading-tight">{desc}</span>
+              </div>
             </Link>
           );
         })}
       </nav>
 
-      <div className="mt-auto flex flex-col gap-4">
-        <button 
-          onClick={onToggleTheme}
-          className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
-        >
-          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-        </button>
-
-        <div className="p-4 rounded-xl bg-[var(--color-surface-2)]/50 border border-[var(--color-border)] text-[10px] uppercase tracking-widest flex flex-col gap-2">
-          <div className="flex justify-between items-center text-[var(--color-text-muted)]">
-            <span>Security</span>
-            <span className="text-[var(--color-success)] font-bold">MAX</span>
+      {/* Bottom */}
+      <div className="p-3 border-t border-[var(--color-border)] flex flex-col gap-2">
+        {/* System status */}
+        <div className="card p-3 !border-[var(--color-border)]">
+          <div className="flex items-center justify-between mb-2">
+            <span className="label text-[9px]">System</span>
+            <div className="flex items-center gap-1.5">
+              <div className="pulse-dot w-1.5 h-1.5"></div>
+              <span className="text-[10px] text-[var(--color-success)] font-mono font-bold">ONLINE</span>
+            </div>
           </div>
-          <div className="flex justify-between items-center text-[var(--color-text-muted)]">
-            <span>Vault</span>
-            <span className="text-[var(--color-success)] font-bold">LOCKED</span>
+          <div className="flex flex-col gap-1">
+            {[
+              { label: 'Security', value: 'MAX', color: 'var(--color-success)' },
+              { label: 'Vault', value: 'LOCKED', color: 'var(--color-success)' },
+              { label: 'ZTA Mode', value: 'ON', color: 'var(--color-primary)' },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="flex justify-between items-center">
+                <span className="text-[10px] text-[var(--color-text-muted)]">{label}</span>
+                <span className="text-[10px] font-bold font-mono" style={{ color }}>{value}</span>
+              </div>
+            ))}
           </div>
         </div>
+
+        {/* Theme toggle */}
+        <button onClick={onToggleTheme} className="btn btn-ghost w-full justify-start text-[12px] py-2">
+          {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+        </button>
       </div>
-    </div>
+    </aside>
   );
 }
