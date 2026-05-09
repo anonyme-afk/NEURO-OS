@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import { createServer as createHttpServer } from 'http';
@@ -58,7 +59,7 @@ async function startServer() {
 
   wss.on('connection', (ws) => {
     console.log('[WS] Client connected to /ws/brain-activity');
-    
+
     // Subscribe to EventBus and send messages to this specific client
     const messageHandler = (event: any) => {
       if (ws.readyState === ws.OPEN) {
@@ -76,9 +77,9 @@ async function startServer() {
 
   httpServer.listen(PORT, () => {
     console.log(`[NEURO-OS] Live and listening on http://0.0.0.0:${PORT}`);
-    eventBus.publish('SYSTEM_BOOT', { 
-      status: 'online', 
-      boot_time: new Date().toISOString() 
+    eventBus.publish('SYSTEM_BOOT', {
+      status: 'online',
+      boot_time: new Date().toISOString()
     });
   });
 }

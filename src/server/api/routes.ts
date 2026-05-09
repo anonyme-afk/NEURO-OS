@@ -66,42 +66,57 @@ export function setupApiRoutes() {
   });
 
   // --- SETTINGS ---
-  router.get('/system/config', (req, res) => {
-    res.json({
-      air_gapped_mode: dbOps.getSetting('air_gapped_mode', 'false') === 'true',
-      version: '2.0.0-INDUSTRIAL',
-      vault_secured: true,
-      mtls_enabled: dbOps.getSetting('mtls_enabled', 'true') === 'true',
-      mqtt_enabled: dbOps.getSetting('mqtt_enabled', 'false') === 'true',
-    });
+  router.get('/system/config', async (req, res) => {
+    try {
+      const air_gapped_mode = await dbOps.getSetting('air_gapped_mode', 'false');
+      const mtls_enabled = await dbOps.getSetting('mtls_enabled', 'true');
+      const mqtt_enabled = await dbOps.getSetting('mqtt_enabled', 'false');
+      res.json({
+        air_gapped_mode: air_gapped_mode === 'true',
+        version: '2.0.0-INDUSTRIAL',
+        vault_secured: true,
+        mtls_enabled: mtls_enabled === 'true',
+        mqtt_enabled: mqtt_enabled === 'true',
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
-  router.post('/system/config', validate(configSchema), (req, res) => {
-    const { air_gapped_mode, mtls_enabled, mqtt_enabled } = req.body;
-    if (air_gapped_mode !== undefined) dbOps.setSetting('air_gapped_mode', String(air_gapped_mode));
-    if (mtls_enabled !== undefined) dbOps.setSetting('mtls_enabled', String(mtls_enabled));
-    if (mqtt_enabled !== undefined) dbOps.setSetting('mqtt_enabled', String(mqtt_enabled));
-    
-    res.json({ success: true });
+  router.post('/system/config', validate(configSchema), async (req, res) => {
+    try {
+      const { air_gapped_mode, mtls_enabled, mqtt_enabled } = req.body;
+      if (air_gapped_mode !== undefined) await dbOps.setSetting('air_gapped_mode', String(air_gapped_mode));
+      if (mtls_enabled !== undefined) await dbOps.setSetting('mtls_enabled', String(mtls_enabled));
+      if (mqtt_enabled !== undefined) await dbOps.setSetting('mqtt_enabled', String(mqtt_enabled));
+
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   // --- VAULT & CONNECTORS ---
-  router.post('/vault/keys', validate(vaultSchema), (req, res) => {
-    const { provider, apiKey, name } = req.body;
-    const encrypted = encryptKey(JSON.stringify({ apiKey }));
-    
-    const id = uuidv4();
-    dbOps.upsertConnector({
-      id,
-      name: name || `Node ${provider}`,
-      type: provider,
-      is_active: 1,
-      encrypted_config: encrypted
-    });
+  router.post('/vault/keys', validate(vaultSchema), async (req, res) => {
+    try {
+      const { provider, apiKey, name } = req.body;
+      const encrypted = encryptKey(JSON.stringify({ apiKey }));
 
-    connectorRegistry.reloadFromDatabase();
-    auditLog('CONNECTOR_ADDED', 'system', { id, provider });
-    res.json({ success: true, message: 'Connecteur sécurisé et persisté.' });
+      const id = uuidv4();
+      await dbOps.upsertConnector({
+        id,
+        name: name || `Node ${provider}`,
+        type: provider,
+        is_active: 1,
+        encrypted_config: encrypted
+      });
+
+      await connectorRegistry.reloadFromDatabase();
+      auditLog('CONNECTOR_ADDED', 'system', { id, provider });
+      res.json({ success: true, message: 'Connecteur sécurisé et persisté.' });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   router.get('/connectors/list', (req, res) => {
@@ -126,7 +141,7 @@ export function setupApiRoutes() {
   router.get('/modules/status', async (req, res) => {
     await connectorRegistry.healthCheck();
     const connectors = connectorRegistry.listConnectors();
-    
+
     res.json({
       modules: [
         { name: 'brain_logic', status: connectors.some(c => c.is_active) ? 'online' : 'offline' },
@@ -140,22 +155,22 @@ export function setupApiRoutes() {
   router.get('/modules/graph', (req, res) => {
     const connectors = connectorRegistry.listConnectors();
     const nodes = [
-        { id: 'brain_router', group: 1, label: 'Router (mTLS)' },
-        { id: 'brain_memory', group: 2, label: 'Vector DB (Encrypted)' },
-        { id: 'brain_logic', group: 3, label: 'Fusion Engine' },
-        { id: 'queue_broker', group: 5, label: 'Task Queue' }
+      { id: 'brain_router', group: 1, label: 'Router (mTLS)' },
+      { id: 'brain_memory', group: 2, label: 'Vector DB (Encrypted)' },
+      { id: 'brain_logic', group: 3, label: 'Fusion Engine' },
+      { id: 'queue_broker', group: 5, label: 'Task Queue' }
     ];
     const links = [
-        { source: 'queue_broker', target: 'brain_router', value: 1 },
-        { source: 'brain_router', target: 'brain_memory', value: 1 },
-        { source: 'brain_router', target: 'brain_logic', value: 1 }
+      { source: 'queue_broker', target: 'brain_router', value: 1 },
+      { source: 'brain_router', target: 'brain_memory', value: 1 },
+      { source: 'brain_router', target: 'brain_logic', value: 1 }
     ];
 
     connectors.forEach(c => {
-        if (c.is_active) {
-            nodes.push({ id: c.id, group: 4, label: c.name });
-            links.push({ source: 'brain_logic', target: c.id, value: 1 });
-        }
+      if (c.is_active) {
+        nodes.push({ id: c.id, group: 4, label: c.name });
+        links.push({ source: 'brain_logic', target: c.id, value: 1 });
+      }
     });
 
     res.json({ nodes, links });
@@ -205,7 +220,7 @@ export function setupApiRoutes() {
           return res.status(400).json({ error: 'Format non supporté. Utiliser PDF ou TXT.' });
         }
 
-        dbOps.setSetting(
+        await dbOps.setSetting(
           `ingested_${file.originalname}_${Date.now()}`,
           JSON.stringify({ chunks: chunks.length, filename: file.originalname })
         );
@@ -257,7 +272,7 @@ export function setupApiRoutes() {
 
   router.post('/system/migrate-embeddings', async (req, res) => {
     try {
-      const connectors = dbOps.listConnectors();
+      const connectors = await dbOps.listConnectors();
       auditLog('EMBEDDING_MIGRATION', 'system', { connectors: connectors.length });
       res.json({
         success: true,
@@ -287,7 +302,7 @@ export function setupApiRoutes() {
         eventBus.publish('THINK_START', { prompt: cleanPrompt.substring(0, 100) });
         return await fusionEngine.fuse(cleanPrompt);
       });
-      
+
       const latency = Date.now() - startTime;
       moduleLogs.push({ timestamp: Date.now(), latency_ms: latency, error: false });
 
