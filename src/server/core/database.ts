@@ -111,7 +111,7 @@ export const dbOps = {
       sql: 'SELECT value FROM system_config WHERE key = ?',
       args: [key]
     });
-    const row = result.rows[0] as { value: string } | undefined;
+    const row = result.rows[0] as unknown as { value: string } | undefined;
     return row ? row.value : defaultValue;
   }
 };
